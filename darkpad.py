@@ -5,11 +5,11 @@ import json
 import utils
 import binary_utils
 from tkinter import *
+from tkinter import ttk
 from datetime import datetime
 from tkinter import filedialog as fd
 from tkinter import messagebox as msgbox
 from tkinter.simpledialog import askinteger,askstring
-
 # Constants
 BACKGROUND = '#191919'
 SECONDARY_BG = '#2d2d2d'
@@ -47,12 +47,66 @@ class DarkPad(Tk):
         self.misc_menu = None
         self.sm_count = 0
 
+        # Menus
+
+        # File menu to create,open,save files
+        self.file_menu = Menu(self, background=SECONDARY_BG, fg=white, tearoff=0)
+        self.file_menu.add_command(label="New file", command=self.create_file)
+        self.file_menu.add_command(label="Open a file", command=self.open_file)
+        self.file_menu.add_command(label="Save file", command=self.save_file)
+        self.file_menu.add_command(label="Save as..", command=self.save_file_as)
+
+        # Font menu to switch between different fonts and to change font size
+        self.font_menu = Menu(self, background=SECONDARY_BG, fg=white, tearoff=0)
+        for i, font in enumerate(fonts):
+            self.font_menu.add_radiobutton(label=font, font=(font, 10), variable=self.font_rvar, value=i,
+                                           command=self.config_font, selectcolor=white)
+        self.font_menu.add_separator()
+        self.font_menu.add_command(label="Change font size", command=self.change_fsize)
+
+        # Wrap menu to switch between wrap types : char , word, none
+        self.wrap_menu = Menu(self, background=SECONDARY_BG, fg=white, tearoff=0)
+        self.wrap_menu.add_radiobutton(label="Wrap by words", variable=self.wrap_var, value=0, command=self.config_wrap,
+                                       selectcolor=white)
+        self.wrap_menu.add_radiobutton(label="Wrap by characters", variable=self.wrap_var, value=1,
+                                       command=self.config_wrap, selectcolor=white)
+        self.wrap_menu.add_radiobutton(label="No wrap", variable=self.wrap_var, value=2, command=self.config_wrap,
+                                       selectcolor=white)
+
+        # Tools menu
+        self.tools_menu = Menu(self, background=SECONDARY_BG, fg=white, tearoff=0)
+        self.tools_menu.add_command(label="Find & Replace", command=self.open_search_window)
+        self.tools_menu.add_command(label="Add today's date/time at cursor", command=self.add_date)
+        self.create_custom_menu_bar()
+
         # creating Text widget and binding events to it
         self.main_frame = Frame(master=self,background=BACKGROUND)
         self.main_frame.pack(side=TOP,fill=BOTH,expand=True)
         self.txtarea = Text(master=self.main_frame,background=BACKGROUND,font=self.font_tuple,width=0,height=0,foreground=white,insertbackground=white,wrap=NONE,undo=True,autoseparators=True,maxundo=-1)
         self.txtarea.pack(side=LEFT,anchor=NW,fill=BOTH,expand=True)
-        self.scrollbar = Scrollbar(master=self.main_frame,background=BACKGROUND,command=self.txtarea.yview)
+        # ttk Dark Scrollbar
+        style = ttk.Style()
+        style.theme_use("clam")
+        style.configure(
+            "Dark.Vertical.TScrollbar",
+            background=SECONDARY_BG,
+            troughcolor=BACKGROUND,
+            bordercolor=BACKGROUND,
+            arrowcolor=white,
+            lightcolor=BACKGROUND,
+            darkcolor=BACKGROUND
+        )
+        style.map(
+            "Dark.Vertical.TScrollbar",
+            background=[("active", SECONDARY_BG)]
+        )
+
+        self.scrollbar = ttk.Scrollbar(
+            self.main_frame,
+            orient="vertical",
+            command=self.txtarea.yview,
+            style="Dark.Vertical.TScrollbar"
+        )
         self.scrollbar.pack(side=RIGHT,fill=Y,anchor=E)
         self.txtarea.config(yscrollcommand=self.scrollbar.set)
         self.txtarea.tag_configure("search",background=white,foreground='black')
@@ -68,39 +122,6 @@ class DarkPad(Tk):
         self.txtarea.bind("<Control-Delete>",func=lambda e:self.ctrl_delete())
         self.txtarea.bind("<Control-BackSpace>",func=lambda e:self.ctrl_backspace())
         self.txtarea.bind("<Control-MouseWheel>",func=lambda e: self.scroll_fsize(e.delta))
-
-        # Menus
-        self.main_menu = Menu(self,background=SECONDARY_BG,fg=white)
-
-        # File menu to create,open,save files
-        self.file_menu = Menu(self.main_menu,background=SECONDARY_BG,fg=white,tearoff=0)
-        self.file_menu.add_command(label="New file",command=self.create_file)
-        self.file_menu.add_command(label="Open a file",command=self.open_file)
-        self.file_menu.add_command(label="Save file",command=self.save_file)
-        self.file_menu.add_command(label="Save as..",command=self.save_file_as)
-        self.main_menu.add_cascade(label="File",menu=self.file_menu)
-
-        # Font menu to switch between different fonts and to change font size 
-        self.font_menu = Menu(self,background=SECONDARY_BG,fg=white,tearoff=0)
-        for i,font in enumerate(fonts):
-            self.font_menu.add_radiobutton(label=font,font=(font,10),variable=self.font_rvar,value=i,command=self.config_font,selectcolor=white)
-        self.font_menu.add_separator()
-        self.font_menu.add_command(label="Change font size",command=self.change_fsize)
-        self.main_menu.add_cascade(label="Font",menu=self.font_menu)
-
-        # Wrap menu to switch between wrap types : char , word, none
-        self.wrap_menu = Menu(self.main_menu,background=SECONDARY_BG,fg=white,tearoff=0)
-        self.wrap_menu.add_radiobutton(label="Wrap by words",variable=self.wrap_var,value=0,command=self.config_wrap,selectcolor=white)
-        self.wrap_menu.add_radiobutton(label="Wrap by characters",variable=self.wrap_var,value=1,command=self.config_wrap,selectcolor=white)
-        self.wrap_menu.add_radiobutton(label="No wrap",variable=self.wrap_var,value=2,command=self.config_wrap,selectcolor=white)
-        self.main_menu.add_cascade(label="Wrap",menu=self.wrap_menu)
-
-        # Tools menu 
-        self.tools_menu = Menu(self.main_menu,background=SECONDARY_BG,fg=white,tearoff=0)
-        self.tools_menu.add_command(label="Find & Replace",command=self.open_search_window)
-        self.tools_menu.add_command(label="Add today's date/time at cursor",command=self.add_date)
-        self.main_menu.add_cascade(label="Tools",menu=self.tools_menu)
-        self.config(menu=self.main_menu)
 
         # footer
         self.footer = Frame(master=self,background=SECONDARY_BG)
@@ -124,7 +145,59 @@ class DarkPad(Tk):
         self.check_change()
         self.config_wrap()
         self.update_footer()
+        self.enable_dark_title_bar()
         self.txtarea.focus()
+
+    def enable_dark_title_bar(self):
+        try:
+            import ctypes
+            DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+            value = ctypes.c_int(1)
+            hwnd = ctypes.windll.user32.GetParent(self.winfo_id())
+            ctypes.windll.dwmapi.DwmSetWindowAttribute(
+                hwnd,
+                DWMWA_USE_IMMERSIVE_DARK_MODE,
+                ctypes.byref(value),
+                ctypes.sizeof(value)
+            )
+        except Exception:
+            pass
+
+    def create_custom_menu_bar(self):
+
+        self.menu_bar = Frame(self, bg=SECONDARY_BG)
+        self.menu_bar.pack(side=TOP, fill=X)
+
+        def make_menu_button(text, menu):
+            lbl = Label(
+                self.menu_bar,
+                text=text,
+                bg=SECONDARY_BG,
+                fg=white,
+                padx=10,
+                pady=4
+            )
+
+            def show_menu(event):
+                menu.tk_popup(event.x_root, event.y_root)
+
+            def on_enter(e):
+                lbl.config(bg=BACKGROUND)
+
+            def on_leave(e):
+                lbl.config(bg=SECONDARY_BG)
+
+            lbl.bind("<Button-1>", show_menu)
+            lbl.bind("<Enter>", on_enter)
+            lbl.bind("<Leave>", on_leave)
+
+            lbl.pack(side=LEFT)
+            return lbl
+
+        make_menu_button("File", self.file_menu)
+        make_menu_button("Font", self.font_menu)
+        make_menu_button("Wrap", self.wrap_menu)
+        make_menu_button("Tools", self.tools_menu)
 
     def open_search_window(self):
         """
@@ -324,23 +397,49 @@ class DarkPad(Tk):
         self.check_change()
         return "break"
 
+    def add_custom_menu_button(self, text, menu):
+
+        lbl = Label(
+            self.menu_bar,
+            text=text,
+            bg=SECONDARY_BG,
+            fg=white,
+            padx=10,
+            pady=4
+        )
+
+        def show_menu(event):
+            x = lbl.winfo_rootx()
+            y = lbl.winfo_rooty() + lbl.winfo_height()
+            menu.tk_popup(x, y)
+
+        def on_enter(e):
+            lbl.config(bg=BACKGROUND)
+
+        def on_leave(e):
+            lbl.config(bg=SECONDARY_BG)
+
+        lbl.bind("<Button-1>", show_menu)
+        lbl.bind("<Enter>", on_enter)
+        lbl.bind("<Leave>", on_leave)
+
+        lbl.pack(side=LEFT)
+        return lbl
+
     def secret_menu(self):
-        """
-        Secret feature : creates a new menu where encryption and decryption can be done
-        this feature can be triggered by pressing ctrl+u 99 times, anytime when Misc menu is invisible
-        """
         self.sm_count += 1
         if self.sm_count == 99:
-            self.misc_menu = Menu(self.main_menu,background=SECONDARY_BG,fg=white,tearoff=0)
-            self.misc_menu.add_command(label="Encrypt",command=self.sm_enc)
-            self.misc_menu.add_command(label="Decrypt",command=self.sm_dec)
+            self.misc_menu = Menu(self, background=SECONDARY_BG, fg=white, tearoff=0)
+
+            self.misc_menu.add_command(label="Encrypt", command=self.sm_enc)
+            self.misc_menu.add_command(label="Decrypt", command=self.sm_dec)
             self.misc_menu.add_separator()
-            self.misc_menu.add_command(label="Text to binary",command=self.sm_t2b)
-            self.misc_menu.add_command(label="Binary to text",command=self.sm_b2t)
+            self.misc_menu.add_command(label="Text to binary", command=self.sm_t2b)
+            self.misc_menu.add_command(label="Binary to text", command=self.sm_b2t)
             self.misc_menu.add_separator()
-            self.misc_menu.add_command(label="Destroy!!",command=self.sm_destroy)
-            self.main_menu.add_cascade(label="Misc",menu=self.misc_menu)
-            self.config(menu=self.main_menu)
+            self.misc_menu.add_command(label="Destroy!!", command=self.sm_destroy)
+
+            self.misc_button = self.add_custom_menu_button("Misc", self.misc_menu)
 
     def sm_enc(self):
         """
@@ -393,7 +492,7 @@ class DarkPad(Tk):
         destroys the Misc menu and resets the secret menu trigger counter to 0 (self.ee = 0)
         """
         self.misc_menu.destroy()
-        self.main_menu.delete(5,5)
+        self.misc_button.destroy()
         self.sm_count = 0
 
     def insert_tab(self):
@@ -586,6 +685,7 @@ class DarkPad(Tk):
             file = fd.askopenfilename(title="Open a file")
             if file:
                 with open(file,'r',encoding=self.char_encoding) as f:
+                    print(f'app encoding:{self.char_encoding}, file encoding: {f.encoding}')
                     try:
                         self.content = f.read()
                         self.curr_file = file
@@ -594,6 +694,7 @@ class DarkPad(Tk):
 
         else: # filename provided, opening file directly
             with open(filename,'r',encoding=self.char_encoding) as f:
+                print(f'app encoding:{self.char_encoding}, file encoding: {f.encoding}')
                 try:
                     self.content = f.read()
                     self.curr_file = filename
